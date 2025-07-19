@@ -1,3 +1,12 @@
+环境变量
+Variables：用户名/项目名：zxlwq/Player
+```
+GIT_REPO
+```
+Secrets：拉私库token
+```
+GIT_TOKEN
+```
 ## 在线音乐播放器
 
 这是一个在线音乐播放器，集成api增加删除歌曲，可批量添加或删除，支持的音乐格式: mp3/wav/flac/m4a
