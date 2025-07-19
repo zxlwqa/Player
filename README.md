@@ -11,8 +11,8 @@ ARG GIT_TOKEN
 ARG GIT_REPO
 
 RUN rm -rf /app/* \
- && git clone https://${GIT_TOKEN}@github.com/${GIT_REPO}.git . \
- && npm install
+&& git clone https://${GIT_TOKEN}@github.com/${GIT_REPO}.git . \
+&& npm install
 
 EXPOSE 3000
 
