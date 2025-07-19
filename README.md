@@ -1,4 +1,24 @@
-环境变量
+Player:
+Dockerfile
+```
+FROM node:18-alpine
+
+RUN apk add --no-cache git bash curl
+
+WORKDIR /app
+
+ARG GIT_TOKEN
+ARG GIT_REPO
+
+RUN rm -rf /app/* \
+ && git clone https://${GIT_TOKEN}@github.com/${GIT_REPO}.git . \
+ && npm install
+
+EXPOSE 3000
+
+CMD ["node", "app.js"]
+```
+## 环境变量
 Variables：用户名/项目名：zxlwq/Player
 ```
 GIT_REPO
