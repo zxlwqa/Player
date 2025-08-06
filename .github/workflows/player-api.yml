@@ -35,39 +35,49 @@ jobs:
           python3 -m pip install --upgrade pip
           pip install huggingface_hub
 
-      - name: 🚀 创建 Hugging Face Space 并上传代码
+      - name: 📥 写入 Python 脚本
         run: |
-          python3 -c "
+          cat <<EOF > create_space.py
 from huggingface_hub import HfApi
 
-token = '${{ github.event.inputs.Token }}'
-user = '${{ github.event.inputs.UserID }}'
-space_name = '${{ github.event.inputs.SpaceName }}' or 'Player'
-private = '${{ github.event.inputs.Private }}'.lower() == 'true'
+import os
 
-repo_id = f'{user}/{space_name}'
+token = os.environ.get('HF_TOKEN')
+user = os.environ.get('HF_USER')
+space_name = os.environ.get('HF_SPACE') or 'Player'
+private = os.environ.get('HF_PRIVATE', 'false').lower() == 'true'
+
+repo_id = f"{user}/{space_name}"
 api = HfApi()
 
 try:
     api.create_repo(
         repo_id=repo_id,
         token=token,
-        repo_type='space',
-        space_sdk='static',
+        repo_type="space",
+        space_sdk="static",
         private=private
     )
-    print(f'✅ 成功创建 Space：{repo_id}')
+    print(f"✅ 成功创建 Space：{repo_id}")
 except Exception as e:
-    print(f'⚠️ Space 创建失败（可能已存在）：{e}')
+    print(f"⚠️ Space 创建失败（可能已存在）：{e}")
 
 try:
     api.upload_folder(
-        folder_path='Player',
+        folder_path="Player",
         repo_id=repo_id,
-        repo_type='space',
+        repo_type="space",
         token=token
     )
-    print('✅ Player 代码上传完成。')
+    print("✅ Player 代码上传完成。")
 except Exception as e:
-    print(f'❌ 上传失败：{e}')
-"
+    print(f"❌ 上传失败：{e}")
+EOF
+
+      - name: 🚀 执行 Python 脚本上传 Space
+        env:
+          HF_TOKEN: ${{ github.event.inputs.Token }}
+          HF_USER: ${{ github.event.inputs.UserID }}
+          HF_SPACE: ${{ github.event.inputs.SpaceName }}
+          HF_PRIVATE: ${{ github.event.inputs.Private }}
+        run: python3 create_space.py
