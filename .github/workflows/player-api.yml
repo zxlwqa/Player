@@ -1,107 +1,41 @@
-name: 创建Player
+- name: 初始化临时 Git 仓库并推送 Dockerfile、.gitattributes 和 README.md（带 app_port: 3000）
+  env:
+    HF_TOKEN: ${{ github.event.inputs.Token }}
+    HF_USER: ${{ github.event.inputs.UserID }}
+    HF_SPACE: ${{ github.event.inputs.SpaceName }}
+  run: |
+    space_repo="https://huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
 
-on:
-  workflow_dispatch:
-    inputs:
-      Token:
-        description: 'HuggingFace Access Token，需写入 Spaces 权限'
-        required: true
-        default: ''
-      UserID:
-        description: 'HuggingFace 用户名'
-        required: true
-        default: ''
-      SpaceName:
-        description: 'Space 名称，默认 Player'
-        required: false
-        default: 'Player'
+    rm -rf temp_space_push
+    mkdir temp_space_push
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    if: github.event.repository.owner.id == github.event.sender.id
+    # 复制 Dockerfile
+    cp Dockerfile temp_space_push/
 
-    steps:
-      - name: Checkout 仓库代码
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
+    # 创建 .gitattributes
+    echo "* text=auto" > temp_space_push/.gitattributes
 
-      - name: 隐藏敏感输入
-        uses: levibostian/action-hide-sensitive-inputs@v1
-
-      - name: 设置 Python 环境
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: 安装 huggingface_hub
-        run: pip install huggingface_hub
-
-      - name: 创建 Hugging Face Space
-        env:
-          HF_TOKEN: ${{ github.event.inputs.Token }}
-          HF_USER: ${{ github.event.inputs.UserID }}
-          HF_SPACE: ${{ github.event.inputs.SpaceName }}
-        run: |
-          python <<EOF
-          import os
-          from huggingface_hub import HfApi
-
-          token = os.environ["HF_TOKEN"]
-          user = os.environ["HF_USER"]
-          space_name = os.environ.get("HF_SPACE", "Player")
-          full_space_id = f"{user}/{space_name}"
-
-          api = HfApi(token=token)
-
-          print(f"创建 Space：{full_space_id}")
-          api.create_repo(
-              repo_id=full_space_id,
-              repo_type="space",
-              space_sdk="docker",
-              private=False,
-              exist_ok=True
-          )
-          EOF
-
-      - name: 推送Dockerfile
-        env:
-          HF_TOKEN: ${{ github.event.inputs.Token }}
-          HF_USER: ${{ github.event.inputs.UserID }}
-          HF_SPACE: ${{ github.event.inputs.SpaceName }}
-        run: |
-          space_repo="https://huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
-
-          rm -rf temp_space_push
-          mkdir temp_space_push
-
-          # 复制 Dockerfile
-          cp Dockerfile temp_space_push/
-
-          # 创建 .gitattributes
-          echo "* text=auto" > temp_space_push/.gitattributes
-
-          # 创建 README.md，内容包含 app_port: 3000
-          cat > temp_space_push/README.md <<EOF
+    # 创建 README.md，内容包含 app_port: 3000
+    cat > temp_space_push/README.md <<EOF
+# Player Space
 
 app_port: 3000
 EOF
 
-          cd temp_space_push
-          git init
-          git branch -m main
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git remote add origin $space_repo
+    cd temp_space_push
+    git init
+    git branch -m main
+    git config user.name "github-actions"
+    git config user.email "actions@github.com"
+    git remote add origin $space_repo
 
-          export GIT_ASKPASS=$(mktemp)
-          echo "#!/bin/sh" > $GIT_ASKPASS
-          echo "echo '${HF_TOKEN}'" >> $GIT_ASKPASS
-          chmod +x $GIT_ASKPASS
+    export GIT_ASKPASS=$(mktemp)
+    echo "#!/bin/sh" > $GIT_ASKPASS
+    echo "echo '${HF_TOKEN}'" >> $GIT_ASKPASS
+    chmod +x $GIT_ASKPASS
 
-          git add .
-          git commit -m "Add Dockerfile, .gitattributes and README.md with app_port"
-          git push --force origin main
+    git add .
+    git commit -m "Add Dockerfile, .gitattributes and README.md with app_port"
+    git push --force origin main
 
-          rm -f $GIT_ASKPASS
+    rm -f $GIT_ASKPASS
