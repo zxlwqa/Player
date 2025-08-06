@@ -1,83 +1,76 @@
-name: 使用 Hugging Face SDK 创建 Player Space
+name: 使用抱脸SDK创建Player
 
 on:
   workflow_dispatch:
     inputs:
       Token:
-        description: 'Hugging Face Access Token（需要写权限）'
+        description: 'HuggingFace 的 Access Token，需具有写入 Spaces 权限'
         required: true
         default: ''
       UserID:
-        description: '你的 Hugging Face 用户名'
+        description: 'HuggingFace 用户名'
         required: true
         default: ''
       SpaceName:
-        description: 'Space 名称（默认：Player）'
+        description: 'Spaces 名称（可选，不填默认为 Player）'
         required: false
         default: 'Player'
-      Private:
-        description: '是否设为私有 Space（true/false）'
-        required: false
-        default: 'false'
 
 jobs:
-  create-space:
+  deploy:
     runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
-      - name: ✅ 克隆 Player 仓库
-        run: |
-          git clone https://github.com/zxlwq/Player.git
-          ls Player
+      - name: Checkout 仓库代码
+        uses: actions/checkout@v3
 
-      - name: 🧠 安装 Python 与 Hugging Face SDK
+      - name: 隐藏敏感输入
+        uses: levibostian/action-hide-sensitive-inputs@v1
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: 安装依赖
         run: |
-          python3 -m pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install huggingface_hub
 
-      - name: 📥 写入 Python 脚本
-        run: |
-          cat <<EOF > create_space.py
-from huggingface_hub import HfApi
-
-import os
-
-token = os.environ.get('HF_TOKEN')
-user = os.environ.get('HF_USER')
-space_name = os.environ.get('HF_SPACE') or 'Player'
-private = os.environ.get('HF_PRIVATE', 'false').lower() == 'true'
-
-repo_id = f"{user}/{space_name}"
-api = HfApi()
-
-try:
-    api.create_repo(
-        repo_id=repo_id,
-        token=token,
-        repo_type="space",
-        space_sdk="static",
-        private=private
-    )
-    print(f"✅ 成功创建 Space：{repo_id}")
-except Exception as e:
-    print(f"⚠️ Space 创建失败（可能已存在）：{e}")
-
-try:
-    api.upload_folder(
-        folder_path="Player",
-        repo_id=repo_id,
-        repo_type="space",
-        token=token
-    )
-    print("✅ Player 代码上传完成。")
-except Exception as e:
-    print(f"❌ 上传失败：{e}")
-EOF
-
-      - name: 🚀 执行 Python 脚本上传 Space
+      - name:
         env:
           HF_TOKEN: ${{ github.event.inputs.Token }}
           HF_USER: ${{ github.event.inputs.UserID }}
           HF_SPACE: ${{ github.event.inputs.SpaceName }}
-          HF_PRIVATE: ${{ github.event.inputs.Private }}
-        run: python3 create_space.py
+        run: |
+          python <<EOF
+          from huggingface_hub import HfApi
+          import os
+          import subprocess
+
+          token = os.environ["HF_TOKEN"]
+          user = os.environ["HF_USER"]
+          space_name = os.environ.get("HF_SPACE", "Player")
+          full_space_id = f"{user}/{space_name}"
+
+          api = HfApi(token=token)
+
+          print(f"🚀 正在强制创建 Space：{full_space_id}")
+          api.create_repo(
+              repo_id=full_space_id,
+              repo_type="space",
+              space_sdk="docker",
+              private=False,
+              exist_ok=True
+          )
+
+          # 初始化 Git 并强推代码
+          subprocess.run(["git", "init"])
+          subprocess.run(["git", "config", "--global", "user.name", "github-actions"])
+          subprocess.run(["git", "config", "--global", "user.email", "actions@github.com"])
+          subprocess.run(["git", "remote", "add", "origin", f"https://{token}@huggingface.co/spaces/{full_space_id}"])
+          subprocess.run(["git", "add", "."])
+          subprocess.run(["git", "commit", "-m", "🤖 自动部署 Player 项目到 Hugging Face"])
+          subprocess.run(["git", "push", "--force", "origin", "HEAD:main"])
+          EOF
