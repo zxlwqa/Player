@@ -65,7 +65,7 @@ jobs:
           )
           EOF
 
-      - name: 初始化临时 Git 仓库并推送 Dockerfile、.gitattributes 和 README.md（带 app_port: 3000）
+      - name: 推送 Dockerfile
         env:
           HF_TOKEN: ${{ github.event.inputs.Token }}
           HF_USER: ${{ github.event.inputs.UserID }}
