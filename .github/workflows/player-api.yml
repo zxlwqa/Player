@@ -65,16 +65,28 @@ jobs:
           )
           EOF
 
-      - name: 推送 Dockerfile
+      - name: 推送Dockerfile
         env:
           HF_TOKEN: ${{ github.event.inputs.Token }}
           HF_USER: ${{ github.event.inputs.UserID }}
           HF_SPACE: ${{ github.event.inputs.SpaceName }}
         run: |
           space_repo="https://huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
+
           rm -rf temp_space_push
           mkdir temp_space_push
+
+          # 复制 Dockerfile
           cp Dockerfile temp_space_push/
+
+          # 创建 .gitattributes
+          echo "* text=auto" > temp_space_push/.gitattributes
+
+          # 创建 README.md，内容包含 app_port: 3000
+          cat > temp_space_push/README.md <<EOF
+
+app_port: 3000
+EOF
 
           cd temp_space_push
           git init
@@ -88,8 +100,8 @@ jobs:
           echo "echo '${HF_TOKEN}'" >> $GIT_ASKPASS
           chmod +x $GIT_ASKPASS
 
-          git add Dockerfile
-          git commit -m "Add Dockerfile for Player Space deployment"
+          git add .
+          git commit -m "Add Dockerfile, .gitattributes and README.md with app_port"
           git push --force origin main
 
           rm -f $GIT_ASKPASS
