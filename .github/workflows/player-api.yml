@@ -1,0 +1,75 @@
+name: 使用抱脸创建Player
+
+on:
+  workflow_dispatch:
+    inputs:
+      Token:
+        description: 'Hugging Face 的 Access Token（必须有写权限）'
+        required: true
+        default: ''
+      UserID:
+        description: '你的 Hugging Face 用户名'
+        required: true
+        default: ''
+      SpaceName:
+        description: '要创建的 Space 名称（默认：Player）'
+        required: false
+        default: 'Player'
+      Private:
+        description: '是否设置为私有 Space（true/false）'
+        required: false
+        default: 'false'
+
+jobs:
+  create-space:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 克隆 Player 仓库
+        run: |
+          git clone https://github.com/zxlwq/Player.git
+          ls Player
+
+      - name: 安装 Python 与 Hugging Face SDK
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install huggingface_hub
+
+      - name: 创建 Hugging Face Space 并上传代码
+        run: |
+          python3 <<EOF
+          from huggingface_hub import HfApi, create_repo
+          import os
+          import shutil
+
+          token = "${{ github.event.inputs.Token }}"
+          user = "${{ github.event.inputs.UserID }}"
+          space_name = "${{ github.event.inputs.SpaceName }}" or "Player"
+          private = "${{ github.event.inputs.Private }}".lower() == "true"
+
+          repo_id = f"{user}/{space_name}"
+
+          api = HfApi()
+
+          try:
+              api.create_repo(
+                  name=space_name,
+                  token=token,
+                  repo_type="space",
+                  space_sdk="static",
+                  private=private
+              )
+              print(f"✅ 创建 Space 成功：{repo_id}")
+          except Exception as e:
+              print(f"⚠️ 创建 Space 失败：{e}")
+
+          # 上传目录内容
+          api.upload_folder(
+              folder_path="Player",
+              repo_id=repo_id,
+              repo_type="space",
+              token=token
+          )
+          print("✅ 代码上传完成。")
+
+EOF
