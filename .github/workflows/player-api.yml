@@ -71,7 +71,7 @@ jobs:
           HF_USER: ${{ github.event.inputs.UserID }}
           HF_SPACE: ${{ github.event.inputs.SpaceName }}
         run: |
-          space_repo="https://${HF_TOKEN}@huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
+          space_repo="https://huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
           rm -rf temp_space_push
           mkdir temp_space_push
           cp Dockerfile temp_space_push/
@@ -82,6 +82,14 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git remote add origin $space_repo
+
+          export GIT_ASKPASS=$(mktemp)
+          echo "#!/bin/sh" > $GIT_ASKPASS
+          echo "echo '${HF_TOKEN}'" >> $GIT_ASKPASS
+          chmod +x $GIT_ASKPASS
+
           git add Dockerfile
           git commit -m "Add Dockerfile for Player Space deployment"
           git push --force origin main
+
+          rm -f $GIT_ASKPASS
