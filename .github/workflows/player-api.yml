@@ -71,5 +71,3 @@ jobs:
               token=token
           )
           print("✅ 代码上传完成。")
-
-EOF
