@@ -75,9 +75,10 @@ jobs:
           rm -rf temp_space_push
           mkdir temp_space_push
           cp Dockerfile temp_space_push/
-          
+
           cd temp_space_push
           git init
+          git branch -m main
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git remote add origin $space_repo
