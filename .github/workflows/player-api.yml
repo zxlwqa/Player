@@ -1,10 +1,10 @@
-name: 使用抱脸创建Player
+name: 使用 Hugging Face SDK 创建 Player Space
 
 on:
   workflow_dispatch:
     inputs:
       Token:
-        description: 'Hugging Face 的 Access Token（必须有写权限）'
+        description: 'Hugging Face Access Token（需要写权限）'
         required: true
         default: ''
       UserID:
@@ -12,11 +12,11 @@ on:
         required: true
         default: ''
       SpaceName:
-        description: '要创建的 Space 名称（默认：Player）'
+        description: 'Space 名称（默认：Player）'
         required: false
         default: 'Player'
       Private:
-        description: '是否设置为私有 Space（true/false）'
+        description: '是否设为私有 Space（true/false）'
         required: false
         default: 'false'
 
@@ -38,36 +38,37 @@ jobs:
       - name: 创建 Hugging Face Space 并上传代码
         run: |
           python3 <<EOF
-          from huggingface_hub import HfApi, create_repo
-          import os
-          import shutil
+from huggingface_hub import HfApi
+import os
 
-          token = "${{ github.event.inputs.Token }}"
-          user = "${{ github.event.inputs.UserID }}"
-          space_name = "${{ github.event.inputs.SpaceName }}" or "Player"
-          private = "${{ github.event.inputs.Private }}".lower() == "true"
+token = "${{ github.event.inputs.Token }}"
+user = "${{ github.event.inputs.UserID }}"
+space_name = "${{ github.event.inputs.SpaceName }}" or "Player"
+private = "${{ github.event.inputs.Private }}".lower() == "true"
 
-          repo_id = f"{user}/{space_name}"
+repo_id = f"{user}/{space_name}"
+api = HfApi()
 
-          api = HfApi()
+try:
+    api.create_repo(
+        repo_id=repo_id,
+        token=token,
+        repo_type="space",
+        space_sdk="static",
+        private=private
+    )
+    print(f"✅ 成功创建 Space：{repo_id}")
+except Exception as e:
+    print(f"⚠️ Space 创建失败（可能已存在）：{e}")
 
-          try:
-              api.create_repo(
-                  name=space_name,
-                  token=token,
-                  repo_type="space",
-                  space_sdk="static",
-                  private=private
-              )
-              print(f"✅ 创建 Space 成功：{repo_id}")
-          except Exception as e:
-              print(f"⚠️ 创建 Space 失败：{e}")
-
-          # 上传目录内容
-          api.upload_folder(
-              folder_path="Player",
-              repo_id=repo_id,
-              repo_type="space",
-              token=token
-          )
-          print("✅ 代码上传完成。")
+try:
+    api.upload_folder(
+        folder_path="Player",
+        repo_id=repo_id,
+        repo_type="space",
+        token=token
+    )
+    print("✅ Player 代码上传完成。")
+except Exception as e:
+    print(f"❌ 上传失败：{e}")
+EOF
