@@ -1,73 +1,79 @@
 import argparse
 import requests
+import string
 from huggingface_hub import HfApi, CommitOperationAdd
+from huggingface_hub.utils import HfHubHTTPError
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--hf_token", required=True)
-parser.add_argument("--hf_user", required=True)
-parser.add_argument("--space_name", required=True)
-args = parser.parse_args()
+def get_unused_space_name(hf_user, token):
+    api = HfApi(token=token)
+    used = [repo.repo_id.split("/")[-1] for repo in api.list_spaces(author=hf_user)]
+    for letter in string.ascii_uppercase:
+        if letter not in used:
+            return letter
+    raise Exception("你已用尽 A-Z 的所有 Space 名称，请手动删除一些或指定 space_name。")
 
-api = HfApi()
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--hf_token", required=True, help="Hugging Face Token")
+    parser.add_argument("--hf_user", required=True, help="Hugging Face 用户名")
+    args = parser.parse_args()
 
-space_id = f"{args.hf_user}/{args.space_name}"
+    hf_token = args.hf_token
+    hf_user = args.hf_user
 
-print(f"创建或确认 Space: {space_id}")
-try:
-    api.create_repo(
-        repo_id=space_id,
-        token=args.hf_token,
+    api = HfApi(token=hf_token)
+
+    space_name = get_unused_space_name(hf_user, hf_token)
+    repo_id = f"{hf_user}/{space_name}"
+
+    print(f"创建或确认 Space: {repo_id}")
+
+    try:
+        api.create_repo(
+            name=space_name,
+            token=hf_token,
+            repo_type="space",
+            space_sdk="docker",
+            private=False,
+        )
+        print("Space 创建成功")
+    except HfHubHTTPError as e:
+        if "name already exists" in str(e):
+            print("Space 已存在，继续...")
+        else:
+            raise
+
+    # 下载 Dockerfile
+    dockerfile_url = "https://raw.githubusercontent.com/zxlwq/Player/main/Dockerfile"
+    print(f"下载 Dockerfile: {dockerfile_url}")
+    dockerfile_content = requests.get(dockerfile_url).text
+
+    # 获取当前 README.md（如果没有则创建空的）
+    try:
+        readme = api.hf_hub_download(repo_id=repo_id, filename="README.md", repo_type="space", token=hf_token)
+        with open(readme, "r", encoding="utf-8") as f:
+            readme_content = f.read()
+    except Exception:
+        readme_content = ""
+
+    # 添加 app_port: 3000（如果未添加）
+    if "app_port:" not in readme_content:
+        readme_content += "\napp_port: 3000\n"
+
+    print("提交 Dockerfile 和 README.md 到 Space")
+
+    # 提交文件
+    api.create_commit(
+        repo_id=repo_id,
         repo_type="space",
-        space_sdk="docker",  # 指定为 docker 类型 Space
-        private=False,
+        operations=[
+            CommitOperationAdd(path_in_repo="Dockerfile", path_or_fileobj=dockerfile_content.encode(), is_bytes=True),
+            CommitOperationAdd(path_in_repo="README.md", path_or_fileobj=readme_content.encode(), is_bytes=True),
+        ],
+        commit_message="Initialize Docker Space with Dockerfile and README",
     )
-    print("Space 创建成功或已存在")
-except Exception as e:
-    print(f"创建 Space 异常（可能已存在）：{e}")
 
-# 下载 GitHub 上的 Dockerfile 内容
-dockerfile_url = "https://raw.githubusercontent.com/zxlwq/Player/main/Dockerfile"
-print(f"下载 Dockerfile: {dockerfile_url}")
-r = requests.get(dockerfile_url)
-if r.status_code != 200:
-    raise RuntimeError(f"下载 Dockerfile 失败，状态码: {r.status_code}")
-dockerfile_content = r.content.decode("utf-8")
+    print(f"✅ Space 部署完成: https://huggingface.co/spaces/{repo_id}")
 
-# 获取 Space 现有 README.md 内容
-print("获取当前 README.md 内容")
-try:
-    readme_content = api.download_file(
-        repo_id=space_id,
-        filename="README.md",
-        repo_type="space",
-        token=args.hf_token,
-    ).decode("utf-8")
-except Exception:
-    readme_content = "# Space README\n"
-
-# 追加 app_port: 3000 行（如果不存在）
-if "app_port: 3000" not in readme_content:
-    if not readme_content.endswith("\n"):
-        readme_content += "\n"
-    readme_content += "app_port: 3000\n"
-    print("追加 app_port: 3000 到 README.md")
-else:
-    print("README.md 已包含 app_port: 3000")
-
-# 构造提交操作列表
-operations = [
-    CommitOperationAdd(path_in_repo="Dockerfile", data=dockerfile_content),
-    CommitOperationAdd(path_in_repo="README.md", data=readme_content),
-]
-
-print("提交 Dockerfile 和 README.md 到 Space")
-
-api.create_commit(
-    repo_id=space_id,
-    repo_type="space",
-    commit_message="🚀 上传 Dockerfile 并追加 app_port 到 README.md",
-    token=args.hf_token,
-    operations=operations,
-)
-
-print("部署完成！")
+if __name__ == "__main__":
+    main()
