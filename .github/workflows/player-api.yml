@@ -1,98 +1,33 @@
-name: 创建Player
+name: 部署Player
 
 on:
   workflow_dispatch:
     inputs:
-      Token:
-        description: 'HuggingFace Access Token（需要有写入 Spaces 权限）'
+      HfToken:
+        description: 'Hugging Face Token (写权限)'
         required: true
-      UserID:
-        description: 'HuggingFace 用户名'
+      HfUsername:
+        description: 'Hugging Face 用户名或组织'
         required: true
-      SpaceName:
-        description: 'Space 名称（默认 Player）'
-        required: false
-        default: 'Player'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.event.repository.owner.id == github.event.sender.id
-
     steps:
-      - name: Checkout 当前仓库
-        uses: actions/checkout@v3
-
-      - name: 设置 Python 环境
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: 安装 huggingface_hub
-        run: pip install huggingface_hub
-
-      - name: 创建 Hugging Face Space（使用 Docker 模式）
-        env:
-          HF_TOKEN: ${{ github.event.inputs.Token }}
-          HF_USER: ${{ github.event.inputs.UserID }}
-          HF_SPACE: ${{ github.event.inputs.SpaceName }}
+      - name: 安装依赖
         run: |
-          python <<EOF
-          import os
-          from huggingface_hub import HfApi
+          python3 -m pip install --upgrade pip
+          pip install huggingface_hub requests
 
-          token = os.environ["HF_TOKEN"]
-          user = os.environ["HF_USER"]
-          space_name = os.environ.get("HF_SPACE", "Player")
-          full_space_id = f"{user}/{space_name}"
-
-          api = HfApi(token=token)
-
-          print(f"创建 Space: {full_space_id}")
-          api.create_repo(
-              repo_id=full_space_id,
-              repo_type="space",
-              space_sdk="docker",
-              private=False,
-              exist_ok=True
-          )
-          EOF
-
-      - name: 推送Dockerfile
-        env:
-          HF_TOKEN: ${{ github.event.inputs.Token }}
-          HF_USER: ${{ github.event.inputs.UserID }}
-          HF_SPACE: ${{ github.event.inputs.SpaceName }}
+      - name: 生成随机Space名称
+        id: gen_space_name
         run: |
-          space_url="https://huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
+          SPACE_NAME=$(cat /dev/urandom | tr -dc 'A-Z' | head -c 1)
+          echo "space_name=$SPACE_NAME" >> $GITHUB_OUTPUT
 
-          # 创建临时目录
-          rm -rf temp_space_push
-          mkdir temp_space_push
-
-          # 复制 Dockerfile
-          cp Dockerfile temp_space_push/
-
-          # 创建 .gitattributes
-          echo "* text=auto" > temp_space_push/.gitattributes
-
-          # 创建 README.md，添加 app_port: 3000
-          echo "# ${HF_SPACE} Space" > temp_space_push/README.md
-          echo "" >> temp_space_push/README.md
-          echo "app_port: 3000" >> temp_space_push/README.md
-
-          cd temp_space_push
-          git init
-          git branch -m main
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-
-          # 设置 Git 凭据
-          git config credential.helper store
-          echo "https://${HF_TOKEN}:@huggingface.co" > ~/.git-credentials
-
-          git remote add origin "${space_url}"
-
-          git add .
-          git commit -m "初始化 Space：添加 Dockerfile、.gitattributes 和 README.md"
-          git push --force origin main
+      - name: 运行部署脚本
+        run: |
+          python3 player.py \
+            --hf_token "${{ github.event.inputs.HfToken }}" \
+            --hf_user "${{ github.event.inputs.HfUsername }}" \
+            --space_name "${{ steps.gen_space_name.outputs.space_name }}"
