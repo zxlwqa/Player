@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       Token:
-        description: 'HuggingFace Access Token，需写入 Spaces 权限'
+        description: 'HuggingFace Access Token（需要有写入 Spaces 权限）'
         required: true
       UserID:
         description: 'HuggingFace 用户名'
         required: true
       SpaceName:
-        description: 'Space 名称，默认 Player'
+        description: 'Space 名称（默认 Player）'
         required: false
         default: 'Player'
 
@@ -20,13 +20,8 @@ jobs:
     if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
-      - name: Checkout 仓库代码
+      - name: Checkout 当前仓库
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 1
-
-      - name: 隐藏敏感输入
-        uses: levibostian/action-hide-sensitive-inputs@v1
 
       - name: 设置 Python 环境
         uses: actions/setup-python@v4
@@ -36,7 +31,7 @@ jobs:
       - name: 安装 huggingface_hub
         run: pip install huggingface_hub
 
-      - name: 创建 Hugging Face Space
+      - name: 创建 Hugging Face Space（使用 Docker 模式）
         env:
           HF_TOKEN: ${{ github.event.inputs.Token }}
           HF_USER: ${{ github.event.inputs.UserID }}
@@ -53,7 +48,7 @@ jobs:
 
           api = HfApi(token=token)
 
-          print(f"创建 Space：{full_space_id}")
+          print(f"创建 Space: {full_space_id}")
           api.create_repo(
               repo_id=full_space_id,
               repo_type="space",
@@ -69,15 +64,20 @@ jobs:
           HF_USER: ${{ github.event.inputs.UserID }}
           HF_SPACE: ${{ github.event.inputs.SpaceName }}
         run: |
-          space_repo="https://${HF_TOKEN}@huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
+          space_url="https://huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
 
+          # 创建临时目录
           rm -rf temp_space_push
           mkdir temp_space_push
 
+          # 复制 Dockerfile
           cp Dockerfile temp_space_push/
+
+          # 创建 .gitattributes
           echo "* text=auto" > temp_space_push/.gitattributes
 
-          echo "# Player Space" > temp_space_push/README.md
+          # 创建 README.md，添加 app_port: 3000
+          echo "# ${HF_SPACE} Space" > temp_space_push/README.md
           echo "" >> temp_space_push/README.md
           echo "app_port: 3000" >> temp_space_push/README.md
 
@@ -86,8 +86,13 @@ jobs:
           git branch -m main
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git remote add origin "$space_repo"
+
+          # 设置 Git 凭据
+          git config credential.helper store
+          echo "https://${HF_TOKEN}:@huggingface.co" > ~/.git-credentials
+
+          git remote add origin "${space_url}"
 
           git add .
-          git commit -m "Add Dockerfile, .gitattributes and README.md with app_port"
+          git commit -m "初始化 Space：添加 Dockerfile、.gitattributes 和 README.md"
           git push --force origin main
