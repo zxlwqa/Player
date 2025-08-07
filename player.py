@@ -17,25 +17,36 @@ def get_unused_space_name(hf_user, hf_token):
 def update_readme(original: str) -> str:
     lines = original.splitlines(keepends=True)
     new_lines = []
+    in_yaml = False
     inserted = False
-    dash_count = 0
+
     for line in lines:
         if line.strip() == "---":
-            dash_count += 1
-        if dash_count == 1 and not inserted and "app_port:" not in original:
-            if line.strip() == "---":
-                new_lines.append("app_port: 3000\n")
-                inserted = True
+            if not in_yaml:
+                # 遇到第一个 ---
+                in_yaml = True
+                new_lines.append(line)
+                continue
+            else:
+                # 遇到第二个 ---，插入 app_port 并结束 YAML 头部
+                if not inserted:
+                    new_lines.append("app_port: 3000\n")
+                    inserted = True
+                new_lines.append(line)
+                in_yaml = False
+                continue
         new_lines.append(line)
 
-    # fallback: insert before second ---
-    if not inserted and dash_count == 2:
-        for i in range(len(new_lines)):
-            if new_lines[i].strip() == "---":
-                new_lines.insert(i, "app_port: 3000\n")
-                break
+    # 如果没有找到 YAML 头，则新增一个带 app_port 的简单 YAML 头部
+    if not inserted:
+        yaml_header = (
+            "---\n"
+            "app_port: 3000\n"
+            "---\n"
+        )
+        return yaml_header + original
 
-    return ''.join(new_lines)
+    return "".join(new_lines)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -53,7 +64,7 @@ def main():
     repo_id = f"{hf_user}/{space_name}"
     print(f"创建或确认 Space: {repo_id}")
 
-    # 1. 创建 Space
+    # 1. 创建 Space，exist_ok=True 防止重复异常
     api.create_repo(
         repo_id=repo_id,
         token=hf_token,
