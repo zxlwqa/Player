@@ -4,31 +4,37 @@ on:
   workflow_dispatch:
     inputs:
       hf_token:
-        description: 'Hugging Face Access Token（需要写权限）'
+        description: 'Hugging Face Token'
         required: true
       hf_user:
-        description: 'Hugging Face 用户名'
+        description: 'Hugging Face Username'
         required: true
+      space_name:
+        description: '可选：指定 Space 名称（留空自动 A-Z）'
+        required: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: 下载 player.py 文件
-        run: |
-          curl -o player.py https://raw.githubusercontent.com/zxlwq/Player/main/player.py
+      - name: Checkout 只拉取 player.py
+        uses: actions/checkout@v3
+        with:
+          sparse-checkout: |
+            player.py
+          fetch-depth: 1
 
-      - name: 设置 Python 环境
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      - name: 安装依赖 huggingface_hub
+      - name: Install dependencies
         run: pip install huggingface_hub requests
 
-      - name: 执行部署脚本（自动分配 Space 名）
+      - name: Run deployment script
         run: |
           python3 player.py \
             --hf_token "${{ github.event.inputs.hf_token }}" \
-            --hf_user "${{ github.event.inputs.hf_user }}"
+            --hf_user "${{ github.event.inputs.hf_user }}" \
+            ${{ github.event.inputs.space_name && format('--space_name "{}"', github.event.inputs.space_name) || '' }}
