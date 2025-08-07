@@ -1,4 +1,4 @@
-name: 部署Player
+name: 部署 Player 到 HF Space
 
 on:
   workflow_dispatch:
@@ -14,18 +14,21 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout 当前仓库代码
+        uses: actions/checkout@v3
+
       - name: 安装依赖
         run: |
           python3 -m pip install --upgrade pip
           pip install huggingface_hub requests
 
-      - name: 生成随机Space名称
+      - name: 生成随机单字符 Space 名称
         id: gen_space_name
         run: |
           SPACE_NAME=$(cat /dev/urandom | tr -dc 'A-Z' | head -c 1)
           echo "space_name=$SPACE_NAME" >> $GITHUB_OUTPUT
 
-      - name: 运行部署脚本
+      - name: 运行 player.py 脚本
         run: |
           python3 player.py \
             --hf_token "${{ github.event.inputs.HfToken }}" \
