@@ -1,37 +1,34 @@
-name: 部署 Player 到 HF Space
+name: Deploy to Hugging Face Space
 
 on:
   workflow_dispatch:
     inputs:
-      HfToken:
-        description: 'Hugging Face Token (写权限)'
+      hf_token:
+        description: 'Hugging Face Access Token（需要写权限）'
         required: true
-      HfUsername:
-        description: 'Hugging Face 用户名或组织'
+      hf_user:
+        description: 'Hugging Face 用户名'
         required: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: 下载 player.py 脚本
+      - name: 下载 player.py 文件
         run: |
           curl -o player.py https://raw.githubusercontent.com/zxlwq/Player/main/player.py
 
-      - name: 安装依赖
-        run: |
-          python3 -m pip install --upgrade pip
-          pip install huggingface_hub requests
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
 
-      - name: 生成随机单字符 Space 名称
-        id: gen_space_name
-        run: |
-          SPACE_NAME=$(cat /dev/urandom | tr -dc 'A-Z' | head -c 1)
-          echo "space_name=$SPACE_NAME" >> $GITHUB_OUTPUT
+      - name: 安装依赖 huggingface_hub
+        run: pip install huggingface_hub requests
 
-      - name: 运行 player.py 脚本
+      - name: 执行部署脚本（自动分配 Space 名）
         run: |
           python3 player.py \
-            --hf_token "${{ github.event.inputs.HfToken }}" \
-            --hf_user "${{ github.event.inputs.HfUsername }}" \
-            --space_name "${{ steps.gen_space_name.outputs.space_name }}"
+            --hf_token "${{ github.event.inputs.hf_token }}" \
+            --hf_user "${{ github.event.inputs.hf_user }}"
