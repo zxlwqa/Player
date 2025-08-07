@@ -9,32 +9,29 @@ on:
       hf_user:
         description: 'Hugging Face Username'
         required: true
-      space_name:
-        description: '可选：指定 Space 名称（留空自动 A-Z）'
-        required: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout 只拉取 player.py
-        uses: actions/checkout@v3
-        with:
-          sparse-checkout: |
-            player.py
-          fetch-depth: 1
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Download player.py only
+        run: |
+          curl -o player.py https://raw.githubusercontent.com/zxlwq/Player/main/player.py
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install dependencies
         run: pip install huggingface_hub requests
 
-      - name: Run deployment script
+      - name: Run player.py
         run: |
           python3 player.py \
             --hf_token "${{ github.event.inputs.hf_token }}" \
-            --hf_user "${{ github.event.inputs.hf_user }}" \
-            ${{ github.event.inputs.space_name && format('--space_name "{}"', github.event.inputs.space_name) || '' }}
+            --hf_user "${{ github.event.inputs.hf_user }}"
