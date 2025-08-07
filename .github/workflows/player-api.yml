@@ -1,34 +1,33 @@
-name: Deploy to Hugging Face Space
+name: Run Player Script
 
 on:
   workflow_dispatch:
     inputs:
       hf_token:
-        description: 'Hugging Face Token'
+        description: 'HuggingFace Token'
         required: true
+        type: string
       hf_user:
-        description: 'Hugging Face Username'
+        description: 'HuggingFace Username'
         required: true
+        type: string
 
 jobs:
-  deploy:
+  run:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout this repo
-        uses: actions/checkout@v4
-
-      - name: Download player.py only
-        run: |
-          curl -o player.py https://raw.githubusercontent.com/zxlwq/Player/main/player.py
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
+      - name: Download player.py
+        run: |
+          curl -sSL -o player.py https://raw.githubusercontent.com/zxlwq/Player/main/player.py
+
       - name: Install dependencies
-        run: pip install huggingface_hub requests
+        run: |
+          pip install huggingface_hub requests
 
       - name: Run player.py
         run: |
