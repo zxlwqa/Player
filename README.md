@@ -7,8 +7,6 @@ sdk: docker
 pinned: false
 app_port: 3000
 ---
-
-Player:
 Dockerfile
 ```
 FROM node:18-alpine
