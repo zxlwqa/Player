@@ -14,8 +14,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout 当前仓库代码
-        uses: actions/checkout@v3
+      - name: 下载 player.py 脚本
+        run: |
+          curl -o player.py https://raw.githubusercontent.com/zxlwq/Player/main/player.py
 
       - name: 安装依赖
         run: |
