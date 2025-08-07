@@ -1,4 +1,4 @@
-name: 创建并初始化 Player Space（带默认配置文件）
+name: 创建Player
 
 on:
   workflow_dispatch:
@@ -6,11 +6,9 @@ on:
       Token:
         description: 'HuggingFace Access Token，需写入 Spaces 权限'
         required: true
-        default: ''
       UserID:
         description: 'HuggingFace 用户名'
         required: true
-        default: ''
       SpaceName:
         description: 'Space 名称，默认 Player'
         required: false
@@ -65,44 +63,31 @@ jobs:
           )
           EOF
 
-      - name: 推送 Dockerfile
+      - name: 推送Dockerfile
         env:
           HF_TOKEN: ${{ github.event.inputs.Token }}
           HF_USER: ${{ github.event.inputs.UserID }}
           HF_SPACE: ${{ github.event.inputs.SpaceName }}
         run: |
-          space_repo="https://huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
+          space_repo="https://${HF_TOKEN}@huggingface.co/spaces/${HF_USER}/${HF_SPACE}"
 
           rm -rf temp_space_push
           mkdir temp_space_push
 
-          # 复制 Dockerfile
           cp Dockerfile temp_space_push/
-
-          # 创建 .gitattributes
           echo "* text=auto" > temp_space_push/.gitattributes
 
-          # 创建 README.md，内容包含 app_port: 3000
-          cat > temp_space_push/README.md <<EOF
-# Player Space
-
-app_port: 3000
-EOF
+          echo "# Player Space" > temp_space_push/README.md
+          echo "" >> temp_space_push/README.md
+          echo "app_port: 3000" >> temp_space_push/README.md
 
           cd temp_space_push
           git init
           git branch -m main
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git remote add origin $space_repo
-
-          export GIT_ASKPASS=$(mktemp)
-          echo "#!/bin/sh" > $GIT_ASKPASS
-          echo "echo '${HF_TOKEN}'" >> $GIT_ASKPASS
-          chmod +x $GIT_ASKPASS
+          git remote add origin "$space_repo"
 
           git add .
           git commit -m "Add Dockerfile, .gitattributes and README.md with app_port"
           git push --force origin main
-
-          rm -f $GIT_ASKPASS
