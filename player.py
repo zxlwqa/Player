@@ -1,39 +1,47 @@
-import os
-import string
 import argparse
+import random
+import string
 import requests
-from huggingface_hub import HfApi, create_repo, CommitOperationAdd
-from huggingface_hub.utils import HfHubHTTPError
+from huggingface_hub import (
+    HfApi,
+    create_repo,
+    CommitOperationAdd,
+    create_commit,
+    HfHubHTTPError,
+)
 
-def get_unused_space_name(hf_user, token):
-    api = HfApi(token=token)
-    used = [repo.id.split("/")[-1] for repo in api.list_spaces(author=hf_user)]
-    for letter in string.ascii_uppercase:
-        if letter not in used:
-            return letter
-    raise Exception("你已用尽 A-Z 的所有 Space 名称，请手动删除一些或指定 space_name。")
+def generate_space_name():
+    return random.choice(string.ascii_uppercase)
+
+def get_unused_space_name(hf_user, hf_token):
+    api = HfApi(token=hf_token)
+    existing = api.list_spaces(author=hf_user)
+    used_names = [space.id.split("/")[-1] for space in existing]
+    for _ in range(26):
+        name = generate_space_name()
+        if name not in used_names:
+            return name
+    raise Exception("No available single-letter space name.")
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--hf_token", required=True, help="Hugging Face token")
     parser.add_argument("--hf_user", required=True, help="Hugging Face username")
-    parser.add_argument("--space_name", default=None, help="Space 名称（默认自动 A-Z）")
+    parser.add_argument("--space_name", help="Optional: specify Space name")
     args = parser.parse_args()
 
     hf_token = args.hf_token
     hf_user = args.hf_user
     space_name = args.space_name or get_unused_space_name(hf_user, hf_token)
 
-    repo_id = f"{hf_user}/{space_name}"
-    print(f"创建或确认 Space: {repo_id}")
+    print(f"创建或确认 Space: {hf_user}/{space_name}")
 
-    api = HfApi(token=hf_token)
     try:
         create_repo(
-            name=space_name,
-            token=hf_token,
+            repo_id=space_name,
             repo_type="space",
-            space_sdk="docker"
+            space_sdk="docker",
+            token=hf_token
         )
         print("Space 创建成功")
     except HfHubHTTPError as e:
@@ -46,29 +54,34 @@ def main():
     dockerfile_url = "https://raw.githubusercontent.com/zxlwq/Player/main/Dockerfile"
     dockerfile_content = requests.get(dockerfile_url).text
 
-    # 获取 README.md（如果不存在则设为初始值）
+    # 获取 README.md 并追加
+    api = HfApi(token=hf_token)
     try:
-        readme_url = f"https://huggingface.co/spaces/{repo_id}/raw/main/README.md"
-        readme_content = requests.get(readme_url).text
+        existing_readme = api.hf_hub_download(
+            repo_id=f"{hf_user}/{space_name}",
+            filename="README.md",
+            repo_type="space"
+        )
+        with open(existing_readme, "r") as f:
+            readme_content = f.read()
     except:
         readme_content = ""
 
-    # 追加 app_port: 3000
     if "app_port:" not in readme_content:
         readme_content += "\napp_port: 3000\n"
 
     # 提交文件
     print("提交 Dockerfile 和 README.md 到 Space")
-    api.create_commit(
-        repo_id=repo_id,
+    create_commit(
+        repo_id=f"{hf_user}/{space_name}",
         repo_type="space",
+        token=hf_token,
         operations=[
-            CommitOperationAdd(path_in_repo="Dockerfile", path_or_fileobj=dockerfile_content, is_bytes=False),
-            CommitOperationAdd(path_in_repo="README.md", path_or_fileobj=readme_content, is_bytes=False),
+            CommitOperationAdd(path_in_repo="Dockerfile", path_or_fileobj=dockerfile_url),
+            CommitOperationAdd(path_in_repo="README.md", content=readme_content.encode("utf-8")),
         ],
-        commit_message="Deploy Dockerfile to Space",
+        commit_message="Init Dockerfile and README.md with app_port"
     )
-    print(f"✅ 已部署到 Space: https://huggingface.co/spaces/{repo_id}")
 
 if __name__ == "__main__":
     main()
