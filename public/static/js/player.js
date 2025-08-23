@@ -29,7 +29,7 @@ class Musics {
             method: 'GET',
             async: false,
             success: (response) => {
-                const bgp = ["a.jpg", "b.jpg" , "c.jpg", "d.jpg", "e.jpg"];
+                const bgp = ["a.jpg", "c.jpg" , "f.png", "g.png", "h.png", "l.png", "o.png"];
                 if (response && response.data) {
                     response.data.forEach(item => {
                         const fileName = item.filename;
