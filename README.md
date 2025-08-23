@@ -7,6 +7,9 @@ sdk: docker
 pinned: false
 app_port: 3000
 ---
+```
+app_port: 3000
+```
 Dockerfile
 ```
 FROM node:18-alpine
