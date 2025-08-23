@@ -27,11 +27,9 @@ EXPOSE 3000
 CMD ["node", "app.js"]
 ```
 ## 环境变量
-Variables：用户名/项目名：zxlwq/Player
 ```
 GIT_REPO
 ```
-Secrets：拉私库token
 ```
 GIT_TOKEN
 ```
