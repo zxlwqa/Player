@@ -8,7 +8,7 @@ on:
         required: false
         default: "latest"
       push_dockerhub:
-        description: "是否推送互 Docker Hub"
+        description: "是否推送到 Docker Hub"
         required: false
         default: false
         type: boolean
@@ -42,14 +42,20 @@ jobs:
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: 设置镜像 tags
+        id: set-tags
+        run: |
+          echo "IMAGE_TAGS=ghcr.io/zxlwq/player:${GITHUB_EVENT_INPUTS_TAG}" >> $GITHUB_ENV
+          if [ "${GITHUB_EVENT_INPUTS_PUSH_DOCKERHUB}" = "true" ]; then
+            echo "IMAGE_TAGS=$IMAGE_TAGS docker.io/${DOCKER_HUB_USERNAME}/player:${GITHUB_EVENT_INPUTS_TAG}" >> $GITHUB_ENV
+          fi
+
       - name: 构建并推送 Docker 镜像
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: |
-            ghcr.io/zxlwq/player:${{ github.event.inputs.tag }}
-            ${{ github.event.inputs.push_dockerhub && format('docker.io/{0}/player:{1}', secrets.DOCKER_HUB_USERNAME, github.event.inputs.tag) || '' }}
+          tags: ${{ env.IMAGE_TAGS }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=Player Docker 镜像
