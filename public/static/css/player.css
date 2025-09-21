@@ -466,6 +466,25 @@ body {
     color: #4388e0;
 }
 
+/* 弹窗滚动条样式 */
+.management-modal::-webkit-scrollbar {
+    width: 8px;
+}
+
+.management-modal::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.management-modal::-webkit-scrollbar-thumb {
+    background: #4388e0;
+    border-radius: 4px;
+}
+
+.management-modal::-webkit-scrollbar-thumb:hover {
+    background: #3a7bc8;
+}
+
 
 /* 在 player.css 中添加以下样式 */
 .management-btn {
@@ -506,7 +525,9 @@ body {
     z-index: 1000;
     width: 80%;
     max-width: 500px;
+    max-height: 80vh;
     border: 1px solid #4388e0;
+    overflow-y: auto;
 }
 
 .management-modal h3 {
@@ -538,6 +559,29 @@ body {
 
 .management-modal button:hover {
     background: #3a7bc8;
+}
+
+/* 分组样式 */
+.section-group {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(67, 136, 224, 0.05);
+    border-radius: 8px;
+    border-left: 4px solid #4388e0;
+}
+
+.section-group:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    margin: 0 0 1rem 0;
+    color: #4388e0;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-align: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(67, 136, 224, 0.2);
 }
 
 .close-btn {
