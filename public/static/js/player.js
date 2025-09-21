@@ -34,7 +34,7 @@ class Musics {
             method: 'GET',
             async: false,
             success: (response) => {
-                const bgp = ["a.jpg", "b.jpg" , "c.jpg", "d.jpg", "e.jpg"];
+                const bgp = ["a.png", "c.png" , "f.png", "g.png", "h.png", "l.png", "o.png"];
                 if (response && response.data) {
                     response.data.forEach(item => {
                         const fileName = item.filename;
@@ -111,7 +111,7 @@ class PlayerCreator {
     constructor() {
         this.audio = document.querySelector('.music-player__audio') // Audio dom元素, 因为很多api都是需要原生audio调用的，所以不用jq获取
         // this.audio.muted = true; // 控制静音
-        this.audio.volume = 0.8;
+        this.audio.volume = 1.0;
 
         //工具
         this.util = new Util();
