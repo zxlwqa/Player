@@ -3,8 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<title>my music palyer</title>
+<title>音乐播放器</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    
+     <!-- 浏览器标签 Logo -->
+<link rel="icon" type="image/png" href="static/images/favicon.png">
+<link rel="apple-touch-icon" href="static/images/favicon.png">
 <link rel="stylesheet" href="static/fonts/iconfont.css">
 <link rel="stylesheet" type="text/css" media="screen" href="static/css/reset.css" />
 <link rel="stylesheet" type="text/css" media="screen" href="static/css/player.css" />
@@ -82,7 +86,8 @@
         </ul>
     </div>
     <div class="foot_marker">
-        <a href="https://github.com/eooce/music-service" target="_blank">Music player | Powered by eooce</a>
+        <a href="https://splayer.zxlwq.dpdns.org" target="_blank">网易云音乐</a>｜
+        <a href="https://blog.wedp.dpdns.org/jpg/wx.webp" target="_blank">联系我</a>
     </div>
 </div>
 
@@ -99,7 +104,7 @@
             <span id="current-mode-status" style="color: #4388e0; font-weight: bold; font-size: 0.9rem;">当前模式: 本地歌单</span>
         </div>
         <div>
-            <input type="text" id="api-url" placeholder="API服务器地址 (如: https://player.zxl.xx.kg)">
+            <input type="text" id="api-url" placeholder="API地址 (如: https://music.gvrander.eu.org)">
         </div>
         <div>
             <button id="switch-api">切换API歌单</button>
@@ -144,5 +149,8 @@
 <script src="static/js/player.js"></script>
 <script src="static/js/get_music_list.js"></script>
 <script src="/static/js/star.js"></script>
+
+    <!-- Umami 统计代码 -->
+<script defer src="https://umami.zxlwq.dpdns.org/script.js" data-website-id="3ac227ac-297b-4e47-a337-08a4350e6e65"></script>    
 </body>
 </html>
