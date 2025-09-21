@@ -20,16 +20,21 @@ class Player {
 class Musics {
     constructor() {
         this.songs = [];
+        // 从本地存储加载模式设置
+        this.isApiMode = localStorage.getItem('musicPlayer_isApiMode') === 'true' || false;
+        this.apiUrl = localStorage.getItem('musicPlayer_apiUrl') || '';
         this.loadMusicList();
     }
 
     loadMusicList() {
+        const url = this.isApiMode ? this.apiUrl : '/api/music/list';
+        
         $.ajax({
-            url: '/api/music/list',  // 获取音乐列表的接口地址
+            url: url,
             method: 'GET',
             async: false,
             success: (response) => {
-                const bgp = ["a.jpg", "c.jpg" , "f.png", "g.png", "h.png", "l.png", "o.png"];
+                const bgp = ["a.jpg", "b.jpg" , "c.jpg", "d.jpg", "e.jpg"];
                 if (response && response.data) {
                     response.data.forEach(item => {
                         const fileName = item.filename;
@@ -58,9 +63,42 @@ class Musics {
             },
             error: (xhr, status, error) => {
                 console.error('获取音乐列表失败:', error);
-                alert('获取音乐列表失败，请检查网络连接');
+                const mode = this.isApiMode ? 'API' : '本地';
+                alert(`获取${mode}音乐列表失败，请检查网络连接或API地址`);
             }
         });
+    }
+
+    // 切换到API模式
+    switchToApiMode(baseUrl) {
+        this.isApiMode = true;
+        // 自动添加 /api/music/list 后缀
+        this.apiUrl = baseUrl.endsWith('/') ? baseUrl + 'api/music/list' : baseUrl + '/api/music/list';
+        
+        // 保存到本地存储
+        localStorage.setItem('musicPlayer_isApiMode', 'true');
+        localStorage.setItem('musicPlayer_apiUrl', this.apiUrl);
+        
+        this.songs = []; // 清空当前歌曲列表
+        this.loadMusicList();
+    }
+
+    // 切换到本地模式
+    switchToLocalMode() {
+        this.isApiMode = false;
+        this.apiUrl = '';
+        
+        // 保存到本地存储
+        localStorage.setItem('musicPlayer_isApiMode', 'false');
+        localStorage.removeItem('musicPlayer_apiUrl');
+        
+        this.songs = []; // 清空当前歌曲列表
+        this.loadMusicList();
+    }
+
+    // 获取当前模式
+    getCurrentMode() {
+        return this.isApiMode ? 'API歌单' : '本地歌单';
     }
     //根据索引获取歌曲的方法
     getSongByNum(index) {
@@ -73,7 +111,7 @@ class PlayerCreator {
     constructor() {
         this.audio = document.querySelector('.music-player__audio') // Audio dom元素, 因为很多api都是需要原生audio调用的，所以不用jq获取
         // this.audio.muted = true; // 控制静音
-        this.audio.volume = 1.0;
+        this.audio.volume = 0.8;
 
         //工具
         this.util = new Util();
@@ -240,6 +278,16 @@ class PlayerCreator {
             click: this.handleDeleteSong.bind(this)
         });
 
+        // 切换API歌单按钮
+        this.$switchApi = new Btns('#switch-api', {
+            click: this.handleSwitchToApi.bind(this)
+        });
+
+        // 切换本地歌单按钮
+        this.$switchLocal = new Btns('#switch-local', {
+            click: this.handleSwitchToLocal.bind(this)
+        });
+
         // 点击遮罩层关闭模态框
         $('.modal-overlay').click(this.hideManagementModal.bind(this));
 
@@ -305,6 +353,16 @@ class PlayerCreator {
         $('#song-name').val('');
         $('#admin-password').val('');
         $('#delete-song-name').val('');
+        
+        // 显示基础URL（去掉 /api/music/list 后缀）
+        let baseUrl = '';
+        if (this.musics.apiUrl) {
+            baseUrl = this.musics.apiUrl.replace('/api/music/list', '');
+        }
+        $('#api-url').val(baseUrl);
+        
+        // 更新当前模式显示
+        this.updateModeDisplay();
         
         $('.modal-overlay').fadeIn();
         $('.management-modal').fadeIn();
@@ -401,6 +459,81 @@ class PlayerCreator {
         .fail(error => {
             alert('删除失败: ' + (error.responseJSON?.error || error.statusText));
         });
+    }
+
+    // 处理切换到API模式
+    handleSwitchToApi() {
+        const baseUrl = $('#api-url').val().trim();
+        
+        if (!baseUrl) {
+            alert('请输入API服务器地址');
+            return;
+        }
+
+        // 验证URL格式
+        try {
+            new URL(baseUrl);
+        } catch (e) {
+            alert('请输入有效的URL地址');
+            return;
+        }
+
+        // 保存当前播放状态
+        const wasPlaying = !this.audio.paused;
+        const currentTime = this.audio.currentTime;
+        const currentSongIndex = this.song_index;
+
+        // 切换到API模式（会自动添加 /api/music/list 后缀）
+        this.musics.switchToApiMode(baseUrl);
+        
+        // 更新显示
+        this.updateModeDisplay();
+        this.renderSongList();
+        this.renderSongStyle();
+        
+        // 恢复播放状态
+        if (wasPlaying && this.musics.songs.length > 0) {
+            this.audio.currentTime = currentTime;
+            this.audio.play();
+            this.$play.$el.find('i').removeClass('icon-play').addClass('icon-pause');
+            this.disc.image.addClass('play');
+            this.disc.pointer.addClass('play');
+        }
+
+        alert('已切换到API歌单模式');
+    }
+
+    // 处理切换到本地模式
+    handleSwitchToLocal() {
+        // 保存当前播放状态
+        const wasPlaying = !this.audio.paused;
+        const currentTime = this.audio.currentTime;
+        const currentSongIndex = this.song_index;
+
+        // 切换到本地模式
+        this.musics.switchToLocalMode();
+        
+        // 更新显示
+        this.updateModeDisplay();
+        this.renderSongList();
+        this.renderSongStyle();
+        
+        // 恢复播放状态
+        if (wasPlaying && this.musics.songs.length > 0) {
+            this.audio.currentTime = currentTime;
+            this.audio.play();
+            this.$play.$el.find('i').removeClass('icon-play').addClass('icon-pause');
+            this.disc.image.addClass('play');
+            this.disc.pointer.addClass('play');
+        }
+
+        alert('已切换到本地歌单模式');
+    }
+
+    // 更新模式显示
+    updateModeDisplay() {
+        const mode = this.musics.getCurrentMode();
+        $('#current-mode-status').text(`当前模式: ${mode}`);
     }
 
     //播放暂停控制
