@@ -111,7 +111,7 @@ class PlayerCreator {
     constructor() {
         this.audio = document.querySelector('.music-player__audio') // Audio dom元素, 因为很多api都是需要原生audio调用的，所以不用jq获取
         // this.audio.muted = true; // 控制静音
-        this.audio.volume = 1.0;
+        this.audio.volume = 0.8;
 
         //工具
         this.util = new Util();
@@ -192,12 +192,31 @@ class PlayerCreator {
         this.render_doms.title.html(title);
         this.render_doms.singer.html(singer);
         document.title = title+" - "+singer;
-        this.render_doms.image.prop('src', imageUrl);
-        this.render_doms.blur.css('background-image', 'url("' + imageUrl + '")');
+        
+        // 预加载图片确保立即显示
+        this.preloadAndSetImage(imageUrl);
 
         //切换列表中的item的类名 play
         this.song_list.find('.music__list__item').eq(this.song_index).addClass('play').siblings().removeClass('play');
     }
+
+    // 预加载并设置图片
+    preloadAndSetImage(imageUrl) {
+        const img = new Image();
+        img.onload = () => {
+            // 图片加载完成后立即设置
+            this.render_doms.image.prop('src', imageUrl);
+            this.render_doms.blur.css('background-image', 'url("' + imageUrl + '")');
+        };
+        img.onerror = () => {
+            // 如果图片加载失败，使用默认图片
+            console.warn('图片加载失败，使用默认图片:', imageUrl);
+            this.render_doms.image.prop('src', imageUrl);
+            this.render_doms.blur.css('background-image', 'url("' + imageUrl + '")');
+        };
+        img.src = imageUrl;
+    }
+
     //绑定各种事件
     bindEventListener() {
         // 搜索功能
