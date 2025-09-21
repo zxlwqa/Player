@@ -16,8 +16,12 @@ var funDownload = function(content, filename) {
 $("#save").click(function(){
     // 获取当前播放器中的音乐列表
     let musicList = [];
+    
+    // 使用播放器实例的当前模式
+    const url = PlayerObj.musics.isApiMode ? PlayerObj.musics.apiUrl : '/api/music/list';
+    
     $.ajax({
-        url: '/api/music/list',  // 修改为相对路径
+        url: url,
         method: 'GET',
         async: false,
         success: function(response) {
