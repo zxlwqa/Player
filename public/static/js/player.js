@@ -34,7 +34,28 @@ class Musics {
             method: 'GET',
             async: false,
             success: (response) => {
-                const bgp = ["a.png", "b.png", "c.png", "d.png", "e.png" , "f.png", "g.png", "h.png", "j.png", "k.png", "l.png", "m.png", "n.png", "o.png", "p.png", "q.png", "r.png", "s.png", "t.png", "u.png"];
+                const bgp = [
+                    "a.png",
+                    "b.png",
+                    "c.png",
+                    "d.png",
+                    "e.png",
+                    "f.png",
+                    "g.png",
+                    "h.png",
+                    "j.png",
+                    "k.png",
+                    "l.png",
+                    "m.png",
+                    "n.png",
+                    "o.png",
+                    "p.png",
+                    "q.png",
+                    "r.png",
+                    "s.png",
+                    "t.png",
+                    "u.png"
+                ];
                 if (response && response.data) {
                     response.data.forEach(item => {
                         const fileName = item.filename;
