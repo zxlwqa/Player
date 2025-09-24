@@ -7,8 +7,7 @@
   "license": "MIT",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js",
-    "build": "npm --prefix frontend install --no-audit --no-fund --progress=false && npm --prefix frontend run build && rm -rf dist && mkdir -p dist && cp -r frontend/dist/* dist/"
+    "start": "node app.js"
   },
   "dependencies": {
     "axios": "^1.8.4",
