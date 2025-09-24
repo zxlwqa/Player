@@ -1,11 +1,17 @@
 export async function onRequest(context) {
   const { env, request } = context;
-  // 将根路径映射到 /public/index.html（保持原请求的 URL 基础）
-  const url = new URL(request.url);
-  url.pathname = '/public/index.html';
-  const upstream = await env.ASSETS.fetch(new Request(url.toString(), request));
+  // 优先尝试 /index.html，其次回退到 /public/index.html
+  const base = new URL(request.url);
+  const primary = new URL('/index.html', base);
+  const secondary = new URL('/public/index.html', base);
+
+  let upstream = await env.ASSETS.fetch(new Request(primary.toString(), request));
   if (!upstream.ok) {
-    return new Response('Not Found', { status: 404 });
+    upstream = await env.ASSETS.fetch(new Request(secondary.toString(), request));
+  }
+  if (!upstream.ok) {
+    // 兜底：回退到默认静态资源处理
+    return await context.next();
   }
   const headers = new Headers(upstream.headers);
   if (!headers.get('cache-control')) {
@@ -13,3 +19,5 @@ export async function onRequest(context) {
   }
   return new Response(upstream.body, { status: upstream.status, headers });
 }
+
+
