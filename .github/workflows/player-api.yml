@@ -22,12 +22,20 @@ on:
         description: 'GitHub 代理URL'
         required: false
         default: ''
+      GitPath:
+        description: 'GitHub仓库中音乐文件夹路径'
+        required: false
+        default: ''
       Password:
         description: '管理密码'
         required: false
         default: ''
       WebdavConfig:
         description: 'WebDAV配置可选，格式（url|user|pass）'
+        required: false
+        default: ''
+      WebdavPath:
+        description: 'WebDAV云盘中音乐文件夹路径'
         required: false
         default: ''
       R2Config:
@@ -98,10 +106,12 @@ jobs:
             --git-repo "${{ github.event.inputs.GitRepo }}" \
             --git-token "${{ github.event.inputs.GitToken }}" \
             --git-url "${{ github.event.inputs.GitUrl }}" \
+            --git-path "${{ github.event.inputs.GitPath }}" \
             --password "${{ github.event.inputs.Password }}" \
             --webdav-url "${{ steps.parse_config.outputs.WEBDAV_URL }}" \
             --webdav-user "${{ steps.parse_config.outputs.WEBDAV_USER }}" \
             --webdav-pass "${{ steps.parse_config.outputs.WEBDAV_PASS }}" \
+            --webdav-path "${{ github.event.inputs.WebdavPath }}" \
             --account-id "${{ steps.parse_config.outputs.ACCOUNT_ID }}" \
             --access-key-id "${{ steps.parse_config.outputs.ACCESS_KEY_ID }}" \
             --secret-access-key "${{ steps.parse_config.outputs.SECRET_ACCESS_KEY }}"

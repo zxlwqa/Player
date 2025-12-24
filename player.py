@@ -14,9 +14,11 @@ parser.add_argument("--secret-access-key", help="R2秘密访问密钥", default=
 parser.add_argument("--git-repo", help="GitHub仓库名", default="")
 parser.add_argument("--git-token", help="GitHub Token", default="")
 parser.add_argument("--git-url", help="GitHub 代理URL", default="")
+parser.add_argument("--git-path", help="GitHub仓库中音乐文件夹路径", default="")
 parser.add_argument("--webdav-url", help="WebDAV地址", default="")
 parser.add_argument("--webdav-user", help="WebDAV用户名", default="")
 parser.add_argument("--webdav-pass", help="WebDAV密码", default="")
+parser.add_argument("--webdav-path", help="WebDAV云盘中音乐文件夹路径", default="")
 parser.add_argument("--password", help="管理密码", default="")
 
 args = parser.parse_args()
@@ -73,10 +75,12 @@ pinned: false
         {"key": "GIT_REPO", "value": args.git_repo or ""},
         {"key": "GIT_TOKEN", "value": args.git_token or ""},
         {"key": "GIT_URL", "value": args.git_url or ""},
+        {"key": "GIT_PATH", "value": args.git_path or ""},
         {"key": "PASSWORD", "value": args.password or ""},
         {"key": "WEBDAV_URL", "value": args.webdav_url or ""},
         {"key": "WEBDAV_USER", "value": args.webdav_user or ""},
         {"key": "WEBDAV_PASS", "value": args.webdav_pass or ""},
+        {"key": "WEBDAV_PATH", "value": args.webdav_path or ""},
         {"key": "ACCOUNT_ID", "value": args.account_id or ""},
         {"key": "ACCESS_KEY_ID", "value": args.access_key_id or ""},
         {"key": "SECRET_ACCESS_KEY", "value": args.secret_access_key or ""},
