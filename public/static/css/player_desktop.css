@@ -1,0 +1,13 @@
+.music-player {
+    width: 550px;
+}
+
+.music-player__controls {
+    width: 65%;
+    height: 130px;
+    float: right;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}

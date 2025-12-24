@@ -1,0 +1,107 @@
+name: 抱脸创建音乐播放器
+
+on:
+  workflow_dispatch:
+    inputs:
+      Token:
+        description: '抱脸的Token,需要写权限'
+        required: true
+      Image:
+        description: 'docker镜像地址'
+        required: false
+        default: ''
+      GitRepo:
+        description: 'GitHub仓库名'
+        required: false
+        default: ''
+      GitToken:
+        description: 'GitHub Token'
+        required: false
+        default: ''
+      GitUrl:
+        description: 'GitHub 代理URL'
+        required: false
+        default: ''
+      Password:
+        description: '管理密码'
+        required: false
+        default: ''
+      WebdavConfig:
+        description: 'WebDAV配置可选，格式（url|user|pass）'
+        required: false
+        default: ''
+      R2Config:
+        description: 'R2配置可选，格式（account_id|access_key_id|secret_access_key）'
+        required: false
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: 隐藏输入信息
+        uses: levibostian/action-hide-sensitive-inputs@v1
+
+      - name: 检查系统依赖
+        run: |
+          python -V
+
+      - name: 安装所需依赖
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install huggingface_hub
+
+      - name: 解析配置
+        id: parse_config
+        run: |
+          WEBDAV_CONFIG="${{ github.event.inputs.WebdavConfig }}"
+          R2_CONFIG="${{ github.event.inputs.R2Config }}"
+          
+          if [ -n "$WEBDAV_CONFIG" ]; then
+            WEBDAV_URL=$(echo "$WEBDAV_CONFIG" | cut -d'|' -f1)
+            WEBDAV_USER=$(echo "$WEBDAV_CONFIG" | cut -d'|' -f2)
+            WEBDAV_PASS=$(echo "$WEBDAV_CONFIG" | cut -d'|' -f3)
+          else
+            WEBDAV_URL=""
+            WEBDAV_USER=""
+            WEBDAV_PASS=""
+          fi
+          
+          if [ -n "$R2_CONFIG" ]; then
+            ACCOUNT_ID=$(echo "$R2_CONFIG" | cut -d'|' -f1)
+            ACCESS_KEY_ID=$(echo "$R2_CONFIG" | cut -d'|' -f2)
+            SECRET_ACCESS_KEY=$(echo "$R2_CONFIG" | cut -d'|' -f3)
+          else
+            ACCOUNT_ID=""
+            ACCESS_KEY_ID=""
+            SECRET_ACCESS_KEY=""
+          fi
+          
+          echo "WEBDAV_URL=$WEBDAV_URL" >> $GITHUB_OUTPUT
+          echo "WEBDAV_USER=$WEBDAV_USER" >> $GITHUB_OUTPUT
+          echo "WEBDAV_PASS=$WEBDAV_PASS" >> $GITHUB_OUTPUT
+          echo "ACCOUNT_ID=$ACCOUNT_ID" >> $GITHUB_OUTPUT
+          echo "ACCESS_KEY_ID=$ACCESS_KEY_ID" >> $GITHUB_OUTPUT
+          echo "SECRET_ACCESS_KEY=$SECRET_ACCESS_KEY" >> $GITHUB_OUTPUT
+
+      - name: 运行脚本
+        run: |
+          python player.py \
+            --token "${{ github.event.inputs.Token }}" \
+            --image "${{ github.event.inputs.Image }}" \
+            --git-repo "${{ github.event.inputs.GitRepo }}" \
+            --git-token "${{ github.event.inputs.GitToken }}" \
+            --git-url "${{ github.event.inputs.GitUrl }}" \
+            --password "${{ github.event.inputs.Password }}" \
+            --webdav-url "${{ steps.parse_config.outputs.WEBDAV_URL }}" \
+            --webdav-user "${{ steps.parse_config.outputs.WEBDAV_USER }}" \
+            --webdav-pass "${{ steps.parse_config.outputs.WEBDAV_PASS }}" \
+            --account-id "${{ steps.parse_config.outputs.ACCOUNT_ID }}" \
+            --access-key-id "${{ steps.parse_config.outputs.ACCESS_KEY_ID }}" \
+            --secret-access-key "${{ steps.parse_config.outputs.SECRET_ACCESS_KEY }}"
